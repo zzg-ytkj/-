@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>开题报告 · 师-生-机三元协同平台（云存储版）</title>
+  <title>开题报告 · 师-生-机三元协同平台（Supabase云存储版）</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body { background: linear-gradient(135deg, #eef2f7 0%, #e3e8f0 100%); font-family: 'Segoe UI', Roboto, sans-serif; min-height: 100vh; margin: 0; padding: 20px 0; }
     .platform-container { max-width: 1200px; margin: 0 auto; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); border-radius: 2.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.2); padding: 1.8rem 2rem; }
@@ -17,60 +19,145 @@
     .external-btn { background: #0f172a; color: white; border: none; }
     .external-btn:hover { background: #1e293b; }
     .step-wizard { display: flex; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; }
-    .step-item { flex:1; text-align: center; cursor: pointer; font-weight: 500; color: #64748b; font-size: 0.9rem; }
+    .step-item { flex:1; text-align: center; cursor: pointer; font-weight: 500; color: #64748b; font-size: 0.85rem; }
     .step-item.active { color: #0f172a; font-weight: 700; }
-    .step-circle { width: 42px; height: 42px; background: #cbd5e1; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 6px; font-weight: bold; color: white; }
+    .step-circle { width: 40px; height: 40px; background: #cbd5e1; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 4px; font-weight: bold; color: white; }
     .step-item.active .step-circle { background: #2563eb; transform: scale(1.1); }
     .step-item.completed .step-circle { background: #10b981; }
     .voice-btn { cursor: pointer; color: #2563eb; background: transparent; border: none; font-size: 1.4rem; }
     .annotation-badge { background: #fef3c7; color: #92400e; padding: 0.2rem 0.8rem; border-radius: 20px; font-size: 0.8rem; display: inline-block; }
     .prompt-box { background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 12px; font-family: monospace; font-size: 0.9rem; }
+    .cloud-badge { background: #10b981; color: white; padding: 0.2rem 0.8rem; border-radius: 20px; font-size: 0.8rem; }
   </style>
 </head>
 <body>
 <div class="platform-container">
   <div class="digital-human">
     <i class="fa-solid fa-robot avatar-icon"></i>
-    <div style="flex:1"><span style="font-size:1.2rem;">📢 小策·开题协同助手</span><span id="speechText" style="margin-left:12px; font-style:italic;">师-生-机三元协同，数据云端同步</span></div>
+    <div style="flex:1">
+      <span style="font-size:1.2rem;">📢 小策·开题协同助手</span>
+      <span id="speechText" style="margin-left:12px; font-style:italic;">☁️ Supabase云存储 · 异地实时同步</span>
+    </div>
     <button class="voice-btn" onclick="speakCurrentText()"><i class="fa-solid fa-volume-high"></i></button>
   </div>
+
   <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
     <div>
       <span class="badge bg-primary fs-6 px-3 py-2" id="roleDisplay"><i class="fa-solid fa-user-graduate"></i> 学生端</span>
       <span id="studentInfoDisplay" class="ms-3 text-secondary fw-bold"></span>
+      <span class="cloud-badge ms-2" id="cloudStatus">☁️ 已连接云端</span>
     </div>
     <div>
       <button class="btn btn-outline-secondary btn-sm me-2" onclick="switchToStudent()"><i class="fa-solid fa-user"></i> 学生入口</button>
       <button class="btn btn-outline-warning btn-sm" onclick="switchToTeacher()"><i class="fa-solid fa-chalkboard-user"></i> 教师入口</button>
     </div>
   </div>
+
   <div id="appContent"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   (function() {
-    // ========== 云存储适配器（localStorage 模拟，可替换为 Firebase/Supabase）==========
+    // ========== 请在此处填入你的 Supabase 信息 ==========
+    const SUPABASE_URL = 'https://xxxxxxxxxxxx.supabase.co';      // 替换为你的 Project URL
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // 替换为你的 anon public key
+    
+    // 初始化 Supabase 客户端
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // 测试连接
+    async function testConnection() {
+      try {
+        const { error } = await supabase.from('students').select('count', { count: 'exact', head: true });
+        if (error) {
+          console.error('Supabase 连接失败:', error.message);
+          document.getElementById('cloudStatus').innerText = '⚠️ 连接失败';
+          document.getElementById('cloudStatus').className = 'badge bg-warning ms-2';
+        } else {
+          console.log('Supabase 连接成功');
+          document.getElementById('cloudStatus').innerText = '☁️ 云端在线';
+          document.getElementById('cloudStatus').className = 'cloud-badge ms-2';
+        }
+      } catch(e) {
+        console.error('连接测试出错:', e);
+      }
+    }
+    testConnection();
+
+    // ========== 存储适配器 ==========
     const StorageAdapter = {
-      init: () => console.log('存储适配器：localStorage 模式'),
-      getAllRecords: () => {
-        try { return JSON.parse(localStorage.getItem('thesis_cloud_v6') || '{}'); } catch(e) { return {}; }
+      async getAllRecords() {
+        const { data, error } = await supabase.from('students').select('*');
+        if (error) throw error;
+        const records = {};
+        data.forEach(row => {
+          records[row.student_id] = {
+            name: row.name,
+            studentId: row.student_id,
+            supervisor: row.supervisor,
+            topic: row.topic,
+            aiKeywords: row.ai_keywords,
+            manualKeywords: row.manual_keywords,
+            literatureAbstracts: row.literature_abstracts,
+            aiLiteratureReview: row.ai_literature_review,
+            manualReview: row.manual_review,
+            aiProposal: row.ai_proposal,
+            manualProposal: row.manual_proposal,
+            teacherFeedback: row.teacher_feedback || {},
+            status: row.status
+          };
+        });
+        return records;
       },
-      saveRecord: (sid, rec) => {
-        const all = StorageAdapter.getAllRecords();
-        all[sid] = rec;
-        localStorage.setItem('thesis_cloud_v6', JSON.stringify(all));
+      
+      async saveRecord(studentId, record) {
+        const dbRecord = {
+          student_id: studentId,
+          name: record.name,
+          supervisor: record.supervisor,
+          topic: record.topic || '',
+          ai_keywords: record.aiKeywords || '',
+          manual_keywords: record.manualKeywords || '',
+          literature_abstracts: record.literatureAbstracts || '',
+          ai_literature_review: record.aiLiteratureReview || '',
+          manual_review: record.manualReview || '',
+          ai_proposal: record.aiProposal || '',
+          manual_proposal: record.manualProposal || '',
+          teacher_feedback: record.teacherFeedback || {},
+          status: record.status || '开题中',
+          updated_at: new Date()
+        };
+        const { error } = await supabase.from('students').upsert(dbRecord, { onConflict: 'student_id' });
+        if (error) throw error;
       },
-      getRecord: (sid) => {
-        const all = StorageAdapter.getAllRecords();
-        return all[sid] || null;
+      
+      async getRecord(studentId) {
+        const { data, error } = await supabase.from('students').select('*').eq('student_id', studentId).maybeSingle();
+        if (error) throw error;
+        if (!data) return null;
+        return {
+          name: data.name,
+          studentId: data.student_id,
+          supervisor: data.supervisor,
+          topic: data.topic,
+          aiKeywords: data.ai_keywords,
+          manualKeywords: data.manual_keywords,
+          literatureAbstracts: data.literature_abstracts,
+          aiLiteratureReview: data.ai_literature_review,
+          manualReview: data.manual_review,
+          aiProposal: data.ai_proposal,
+          manualProposal: data.manual_proposal,
+          teacherFeedback: data.teacher_feedback || {},
+          status: data.status
+        };
       }
     };
-    StorageAdapter.init();
 
+    // ---------- 全局状态 ----------
     let currentRole = 'student';
     let currentStudentId = null;
-    let currentTeacherName = ''; // 教师登录时保存姓名
+    let currentTeacherName = '';
     const TEACHER_PASSWORD = 'teacher123';
 
     function speakText(t) {
@@ -82,21 +169,19 @@
     window.speakCurrentText = () => { const el = document.getElementById('speechText'); if(el) speakText(el.innerText); };
     function updateSpeechText(t) { document.getElementById('speechText').innerText = t; }
 
-    // 角色切换
     window.switchToStudent = () => {
       currentRole = 'student'; document.getElementById('roleDisplay').innerHTML = '<i class="fa-solid fa-user-graduate"></i> 学生端';
       document.getElementById('studentInfoDisplay').innerText = ''; currentStudentId = null; currentTeacherName = ''; renderStudentLogin();
     };
     window.switchToTeacher = () => {
       const pwd = prompt('请输入教师密码：'); if(pwd !== TEACHER_PASSWORD) return alert('密码错误');
-      const teacherName = prompt('请输入您的姓名（用于匹配学生）：');
+      const teacherName = prompt('请输入您的姓名（用于匹配您指导的学生）：');
       if(!teacherName || !teacherName.trim()) return alert('姓名不能为空');
       currentRole = 'teacher'; currentTeacherName = teacherName.trim();
       document.getElementById('roleDisplay').innerHTML = '<i class="fa-solid fa-chalkboard-user"></i> 教师端';
       document.getElementById('studentInfoDisplay').innerText = `欢迎，${currentTeacherName}老师`; renderTeacherView();
     };
 
-    // 学生登录（增加导师姓名）
     function renderStudentLogin() {
       document.getElementById('appContent').innerHTML = `
         <div class="card-panel">
@@ -107,64 +192,63 @@
             <div class="col-md-4"><input id="supervisorName" class="form-control" placeholder="导师姓名"></div>
           </div>
           <button class="btn btn-primary btn-soft mt-3" onclick="studentLogin()"><i class="fa-solid fa-arrow-right-to-bracket"></i> 进入系统</button>
-          <small class="text-muted d-block mt-2">云端协同，进度实时保存</small>
+          <small class="text-muted d-block mt-2">☁️ 数据存储在 Supabase 云端，多设备自动同步</small>
         </div>`;
       updateSpeechText('请录入姓名、学号和导师姓名');
     }
 
-    window.studentLogin = () => {
+    window.studentLogin = async () => {
       const name = document.getElementById('studentName').value.trim();
       const sid = document.getElementById('studentIdInput').value.trim();
       const supervisor = document.getElementById('supervisorName').value.trim();
       if(!name || !sid || !supervisor) return alert('请完整填写信息');
-      let record = StorageAdapter.getRecord(sid);
-      if(!record) {
-        record = {
-          name, studentId: sid, supervisor,
-          topic: '', // 论文题目后续补充
-          aiKeywords: '', manualKeywords: '',
-          literatureAbstracts: '', aiLiteratureReview: '', manualReview: '',
-          aiProposal: '', manualProposal: '',
-          teacherFeedback: { keywords:'', literature:'', review:'', proposal:'' },
-          status: '开题中'
-        };
-        StorageAdapter.saveRecord(sid, record);
-      } else {
-        record.name = name; record.supervisor = supervisor;
-        StorageAdapter.saveRecord(sid, record);
-      }
-      currentStudentId = sid;
-      document.getElementById('studentInfoDisplay').innerText = `${record.name} (${sid}) | 导师：${supervisor}`;
-      updateSpeechText(`欢迎 ${record.name}，数据已云端同步`);
-      // 检查是否已设置题目
-      if(!record.topic) {
-        renderSetTopic();
-      } else {
-        renderStudentProgress();
+      try {
+        let record = await StorageAdapter.getRecord(sid);
+        if(!record) {
+          record = {
+            name, studentId: sid, supervisor,
+            topic: '', aiKeywords: '', manualKeywords: '',
+            literatureAbstracts: '', aiLiteratureReview: '', manualReview: '',
+            aiProposal: '', manualProposal: '',
+            teacherFeedback: { keywords:'', literature:'', review:'', proposal:'' },
+            status: '开题中'
+          };
+          await StorageAdapter.saveRecord(sid, record);
+        } else {
+          record.name = name; record.supervisor = supervisor;
+          await StorageAdapter.saveRecord(sid, record);
+        }
+        currentStudentId = sid;
+        document.getElementById('studentInfoDisplay').innerText = `${record.name} (${sid}) | 导师：${supervisor}`;
+        updateSpeechText(`欢迎 ${record.name}，数据已从云端加载`);
+        if(!record.topic) {
+          renderSetTopic();
+        } else {
+          renderStudentProgress();
+        }
+      } catch(e) {
+        alert('加载数据失败，请检查网络连接：' + e.message);
       }
     };
 
-    // 设置论文题目页面
     function renderSetTopic() {
       document.getElementById('appContent').innerHTML = `
         <div class="card-panel">
           <h4><i class="fa-solid fa-pencil"></i> 请先设置论文题目</h4>
-          <p>为了进行后续开题步骤，请在此输入你的论文题目：</p>
           <input id="topicInput" class="form-control mb-3" placeholder="输入论文选题题目">
           <button class="btn btn-primary btn-soft" onclick="setTopic()">保存题目并开始</button>
         </div>`;
     }
-    window.setTopic = () => {
+    window.setTopic = async () => {
       const topic = document.getElementById('topicInput').value.trim();
       if(!topic) return alert('题目不能为空');
-      const rec = StorageAdapter.getRecord(currentStudentId);
+      const rec = await StorageAdapter.getRecord(currentStudentId);
       rec.topic = topic;
-      StorageAdapter.saveRecord(currentStudentId, rec);
+      await StorageAdapter.saveRecord(currentStudentId, rec);
       speakText('题目已设置');
       renderStudentProgress();
     };
 
-    // 步骤定义
     const steps = [
       { key:'keywords', title:'AI推荐关键词', icon:'fa-key' },
       { key:'manualKeywords', title:'人工校正关键词', icon:'fa-edit' },
@@ -186,8 +270,8 @@
       return 0;
     }
 
-    function renderStudentProgress() {
-      const rec = StorageAdapter.getRecord(currentStudentId);
+    async function renderStudentProgress() {
+      const rec = await StorageAdapter.getRecord(currentStudentId);
       if(!rec) return;
       const active = getActiveStep(rec);
       let html = '<div class="step-wizard">';
@@ -202,8 +286,8 @@
 
     window.navigateToStep = (step) => renderStepContent(step);
 
-    function renderStepContent(step) {
-      const rec = StorageAdapter.getRecord(currentStudentId);
+    async function renderStepContent(step) {
+      const rec = await StorageAdapter.getRecord(currentStudentId);
       const c = document.getElementById('stepContent');
       if(!c || !rec) return;
       if(!rec.topic) { renderSetTopic(); return; }
@@ -211,37 +295,37 @@
       switch(step) {
         case 0: c.innerHTML = `
           <h4><i class="fa-solid fa-key text-primary"></i> 第一步：AI推荐关键词</h4>
-          <div class="bg-light p-3 rounded-3 mb-3"><code id="aiPrompt1">我的选题是：“${rec.topic}”，请推荐8-10个检索关键词（中英文对照），按核心概念、研究方法、应用领域分类。</code><button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyText('aiPrompt1')">复制</button></div>
+          <div class="bg-light p-3 rounded-3 mb-3"><code id="aiPrompt1">我的选题是："${rec.topic}"，请推荐8-10个检索关键词（中英文对照），按核心概念、研究方法、应用领域分类。</code><button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyText('aiPrompt1')">复制</button></div>
           <button class="btn btn-dark external-btn mb-3" onclick="window.open('https://chat.deepseek.com/','_blank')">打开DeepSeek</button>
           <textarea id="aiKeywordsInput" class="form-control mb-3" rows="6">${rec.aiKeywords||''}</textarea>
-          <button class="btn btn-success btn-soft" onclick="saveField('aiKeywords')">保存</button>`; break;
+          <button class="btn btn-success btn-soft" onclick="saveField('aiKeywords')">保存到云端</button>`; break;
         case 1: c.innerHTML = `
           <h4><i class="fa-solid fa-edit text-warning"></i> 第二步：人工校正关键词</h4>
           <div class="bg-light p-3 rounded-3 mb-3"><pre>${rec.aiKeywords||'暂无'}</pre></div>
           <textarea id="manualKeywordsInput" class="form-control mb-3" rows="4">${rec.manualKeywords||''}</textarea>
-          <button class="btn btn-success btn-soft" onclick="saveField('manualKeywords')">保存</button>`; break;
+          <button class="btn btn-success btn-soft" onclick="saveField('manualKeywords')">保存到云端</button>`; break;
         case 2: c.innerHTML = `
           <h4><i class="fa-solid fa-book-open text-success"></i> 第三步：知网文献摘要</h4>
           <button class="btn btn-dark external-btn mb-3" onclick="window.open('https://www.cnki.net/','_blank')">打开知网</button>
           <textarea id="literatureInput" class="form-control mb-3" rows="10">${rec.literatureAbstracts||''}</textarea>
-          <button class="btn btn-success btn-soft" onclick="saveField('literatureAbstracts')">保存</button>`; break;
+          <button class="btn btn-success btn-soft" onclick="saveField('literatureAbstracts')">保存到云端</button>`; break;
         case 3: c.innerHTML = `
           <h4><i class="fa-solid fa-file-lines text-info"></i> 第四步：AI生成文献综述（国标引用）</h4>
-          <div class="bg-light p-3 rounded-3 mb-3"><code id="aiPrompt4">请基于以下文献摘要撰写综述（按主题归类，指出缺口）。选题：“${rec.topic}”。引用按先引用先编号原则，多处引用同一文献用同一序号，文末列参考文献清单。</code><button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyText('aiPrompt4')">复制</button></div>
+          <div class="bg-light p-3 rounded-3 mb-3"><code id="aiPrompt4">请基于以下文献摘要撰写综述（按主题归类，指出缺口）。选题："${rec.topic}"。引用按先引用先编号原则，多处引用同一文献用同一序号，文末列参考文献清单。</code><button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyText('aiPrompt4')">复制</button></div>
           <button class="btn btn-dark external-btn mb-3" onclick="window.open('https://chat.deepseek.com/','_blank')">打开DeepSeek</button>
           <textarea id="aiReviewInput" class="form-control mb-3" rows="10">${rec.aiLiteratureReview||''}</textarea>
-          <button class="btn btn-success btn-soft" onclick="saveField('aiLiteratureReview')">保存</button>`; break;
+          <button class="btn btn-success btn-soft" onclick="saveField('aiLiteratureReview')">保存到云端</button>`; break;
         case 4: c.innerHTML = `
           <h4><i class="fa-solid fa-clipboard-check text-warning"></i> 第五步：人工校正文献综述</h4>
           <div class="bg-light p-3 rounded-3 mb-3"><pre style="white-space:pre-wrap;">${rec.aiLiteratureReview||'暂无'}</pre></div>
           <textarea id="manualReviewInput" class="form-control mb-3" rows="10">${rec.manualReview||''}</textarea>
-          <button class="btn btn-success btn-soft" onclick="saveField('manualReview')">保存</button>`; break;
+          <button class="btn btn-success btn-soft" onclick="saveField('manualReview')">保存到云端</button>`; break;
         case 5: c.innerHTML = `
           <h4><i class="fa-solid fa-file-pen text-primary"></i> 第六步：AI生成开题报告初稿</h4>
-          <div class="bg-light p-3 rounded-3 mb-3"><code id="aiPrompt6">请基于以下文献综述为选题“${rec.topic}”撰写开题报告初稿。模板：一、选题背景与意义；二、国内外研究现状；三、研究内容与方法；四、创新点与难点；五、进度安排；六、参考文献。</code><button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyText('aiPrompt6')">复制</button></div>
+          <div class="bg-light p-3 rounded-3 mb-3"><code id="aiPrompt6">请基于以下文献综述为选题"${rec.topic}"撰写开题报告初稿。模板：一、选题背景与意义；二、国内外研究现状；三、研究内容与方法；四、创新点与难点；五、进度安排；六、参考文献。</code><button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyText('aiPrompt6')">复制</button></div>
           <button class="btn btn-dark external-btn mb-3" onclick="window.open('https://chat.deepseek.com/','_blank')">打开DeepSeek</button>
           <textarea id="aiProposalInput" class="form-control mb-3" rows="10">${rec.aiProposal||''}</textarea>
-          <button class="btn btn-success btn-soft" onclick="saveField('aiProposal')">保存</button>`; break;
+          <button class="btn btn-success btn-soft" onclick="saveField('aiProposal')">保存到云端</button>`; break;
         case 6: const fb = rec.teacherFeedback || {};
           let summary = `<h4><i class="fa-solid fa-check-circle text-success"></i> 开题报告成果总览</h4>`;
           const sections = [
@@ -255,12 +339,12 @@
             const note = fb[sec.fbKey] || '';
             summary += `<div class="card mb-3"><div class="card-header d-flex justify-content-between"><strong>${sec.label}</strong><button class="btn btn-sm btn-outline-primary" onclick="navigateToStep(${sec.step})">✏️修改</button></div><div class="card-body"><pre style="white-space:pre-wrap;">${sec.content||'暂无'}</pre>${note ? `<div class="annotation-badge">📝 教师批注：${note}</div>` : '<div class="text-muted">暂无批注</div>'}</div></div>`;
           });
-          summary += `<div class="mt-3"><p><strong>开题报告终稿：</strong></p><textarea id="finalProposalInput" class="form-control mb-3" rows="10">${rec.manualProposal||''}</textarea><button class="btn btn-primary btn-soft" onclick="saveField('manualProposal')">保存终稿</button></div><button class="btn btn-outline-secondary btn-soft mt-3" onclick="renderStudentProgress()">刷新</button>`;
+          summary += `<div class="mt-3"><p><strong>开题报告终稿：</strong></p><textarea id="finalProposalInput" class="form-control mb-3" rows="10">${rec.manualProposal||''}</textarea><button class="btn btn-primary btn-soft" onclick="saveField('manualProposal')">保存终稿到云端</button></div><button class="btn btn-outline-secondary btn-soft mt-3" onclick="renderStudentProgress()">刷新</button>`;
           c.innerHTML = summary; break;
       }
     }
 
-    window.saveField = (field) => {
+    window.saveField = async (field) => {
       const map = {
         aiKeywords: 'aiKeywordsInput', manualKeywords: 'manualKeywordsInput',
         literatureAbstracts: 'literatureInput', aiLiteratureReview: 'aiReviewInput',
@@ -271,24 +355,24 @@
       if(!el) return;
       const val = el.value.trim();
       if(!val) return alert('不能为空');
-      const rec = StorageAdapter.getRecord(currentStudentId);
+      const rec = await StorageAdapter.getRecord(currentStudentId);
       rec[field] = val;
-      StorageAdapter.saveRecord(currentStudentId, rec);
-      speakText('已保存');
+      await StorageAdapter.saveRecord(currentStudentId, rec);
+      speakText('已保存到云端');
       renderStudentProgress();
     };
     window.copyText = (id) => { const el = document.getElementById(id); if(el) navigator.clipboard.writeText(el.innerText.trim()).then(() => alert('已复制')); };
 
-    // ========== 教师端（按导师姓名筛选）==========
-    function renderTeacherView() {
-      const all = StorageAdapter.getAllRecords();
+    // ========== 教师端 ==========
+    async function renderTeacherView() {
+      const all = await StorageAdapter.getAllRecords();
       const students = Object.values(all).filter(s => s.supervisor === currentTeacherName);
-      let html = `<div class="card-panel"><h4><i class="fa-solid fa-users"></i> ${currentTeacherName} 老师指导的学生</h4>`;
-      if(students.length === 0) html += '<p>暂无学生记录</p>';
+      let html = `<div class="card-panel"><h4><i class="fa-solid fa-users"></i> ${currentTeacherName} 老师指导的学生（云端数据）</h4>`;
+      if(students.length === 0) html += '<p class="text-muted">暂无学生记录，请确认学生已填写您的姓名作为导师。</p>';
       else {
         html += '<div class="list-group">';
         students.forEach(s => {
-          html += `<a href="#" class="list-group-item list-group-item-action" onclick="teacherSelectStudent('${s.studentId}')">${s.name} (${s.studentId}) - 题目：${s.topic||'未设置'} - ${s.status||'开题中'}</a>`;
+          html += `<a href="#" class="list-group-item list-group-item-action" onclick="teacherSelectStudent('${s.studentId}')"><strong>${s.name}</strong> (${s.studentId}) · 题目：${s.topic||'未设置'} · <span class="badge bg-${s.status==='已完成'?'success':'warning'}">${s.status||'开题中'}</span></a>`;
         });
         html += '</div>';
       }
@@ -296,8 +380,8 @@
       document.getElementById('appContent').innerHTML = html;
     }
 
-    window.teacherSelectStudent = (sid) => {
-      const rec = StorageAdapter.getRecord(sid);
+    window.teacherSelectStudent = async (sid) => {
+      const rec = await StorageAdapter.getRecord(sid);
       if(!rec) return;
       const fb = rec.teacherFeedback || {};
       const sections = [
@@ -311,22 +395,22 @@
         detail += `
           <div class="mb-3 p-3 border rounded">
             <strong>${sec.label}</strong>
-            <pre style="white-space:pre-wrap;">${sec.content||'暂无'}</pre>
+            <pre style="white-space:pre-wrap; max-height:200px; overflow-y:auto;">${sec.content||'暂无'}</pre>
             <textarea id="fb_${sec.fbKey}" class="form-control form-control-sm" rows="2">${fb[sec.fbKey]||''}</textarea>
-            <button class="btn btn-sm btn-warning mt-1" onclick="saveFeedback('${sid}','${sec.fbKey}')">保存批注</button>
+            <button class="btn btn-sm btn-warning mt-1" onclick="saveFeedback('${sid}','${sec.fbKey}')">保存批注到云端</button>
           </div>`;
       });
       document.getElementById('teacherDetail').innerHTML = detail;
     };
 
-    window.saveFeedback = (sid, key) => {
+    window.saveFeedback = async (sid, key) => {
       const text = document.getElementById(`fb_${key}`).value;
-      const rec = StorageAdapter.getRecord(sid);
+      const rec = await StorageAdapter.getRecord(sid);
       if(!rec.teacherFeedback) rec.teacherFeedback = {};
       rec.teacherFeedback[key] = text;
-      StorageAdapter.saveRecord(sid, rec);
-      alert('批注已保存');
-      speakText('批注已同步');
+      await StorageAdapter.saveRecord(sid, rec);
+      alert('批注已保存，学生端实时可见');
+      speakText('批注已同步到云端');
     };
 
     window.onload = () => { speechSynthesis.getVoices(); switchToStudent(); };
