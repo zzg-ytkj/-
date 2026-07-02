@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>开题报告 · 粗粒度数字孪生平台 | GitHub 原生数据驱动</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-purple: #8b5cf6;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      min-height: 100vh;
+      margin: 0;
+    }
+    /* ===== HEADER ===== */
+    .dt-header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+    .logo-icon {
+      font-size: 2.2rem;
+      background: var(--accent-blue);
+      border-radius: 12px;
+      padding: 0.4rem 0.7rem;
+      animation: logoGlow 3s ease-in-out infinite;
+    }
+    @keyframes logoGlow {
+      0%, 100% { box-shadow: 0 0 10px rgba(59,130,246,0.4); }
+      50% { box-shadow: 0 0 25px rgba(59,130,246,0.8); }
+    }
+    .logo-text {
+      font-size: 1.2rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .logo-sub {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .header-actions { margin-left: auto; display: flex; gap: 0.5rem; }
+    .btn-dt {
+      border-radius: 25px;
+      padding: 0.5rem 1.2rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.3s;
+    }
+    .btn-primary-dt { background: var(--accent-blue); color: white; }
+    .btn-primary-dt:hover { background: #2563eb; transform: translateY(-1px); }
+    .btn-outline-dt { background: transparent; color: var(--text-primary); border: 1px solid rgba(255,255,255,0.3); }
+    .btn-outline-dt:hover { background: rgba(255,255,255,0.1); }
+    .btn-green-dt { background: var(--accent-green); color: white; }
+    .btn-green-dt:hover { background: #059669; }
+    /* ===== MAIN LAYOUT ===== */
+    .main-layout {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 900px) {
+      .main-layout { grid-template-columns: 1fr; }
+    }
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      position: sticky;
+      top: 80px;
+      height: fit-content;
+    }
+    .sidebar-card {
+      background: var(--bg-card);
+      border-radius: 1.2rem;
+      padding: 1.2rem;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-section { margin-bottom: 1.5rem; }
+    .sidebar-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      margin-bottom: 0.8rem;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.6rem 0.8rem;
+      border-radius: 10px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      transition: all 0.2s;
+      margin-bottom: 0.3rem;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+    .nav-item.active { background: rgba(59,130,246,0.2); color: var(--accent-blue); }
+    .nav-item .badge {
+      margin-left: auto;
+      background: rgba(255,255,255,0.1);
+      padding: 0.15rem 0.5rem;
+      border-radius: 10px;
+      font-size: 0.75rem;
+    }
+    .nav-item.active .badge { background: rgba(59,130,246,0.3); }
+    /* ===== CONFIG PANEL ===== */
+    .config-panel {
+      background: var(--bg-card);
+      border-radius: 1.2rem;
+      padding: 1.5rem;
+      border: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 1rem;
+    }
+    .config-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.8rem;
+      font-size: 0.85rem;
+    }
+    .config-label { color: var(--text-secondary); min-width: 80px; }
+    .config-input {
+      flex: 1;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+    }
+    .config-input:focus { outline: none; border-color: var(--accent-blue); background: rgba(59,130,246,0.1); }
+    .config-input::placeholder { color: var(--text-secondary); opacity: 0.6; }
+    /* ===== CONTENT AREA ===== */
+    .content-area {}
+    .panel-card {
+      background: var(--bg-card);
+      border-radius: 1.2rem;
+      padding: 1.5rem;
+      border: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 1rem;
+    }
+    .panel-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .panel-title i { color: var(--accent-blue); }
+    /* ===== STAT CARDS ===== */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(139,92,246,0.1) 100%);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 1rem;
+      padding: 1.2rem;
+      text-align: center;
+    }
+    .stat-card.green { background: linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(16,185,129,0.05) 100%); border-color: rgba(16,185,129,0.2); }
+    .stat-card.amber { background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(245,158,11,0.05) 100%); border-color: rgba(245,158,11,0.2); }
+    .stat-card.red { background: linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.05) 100%); border-color: rgba(239,68,68,0.2); }
+    .stat-value { font-size: 2.2rem; font-weight: 700; line-height: 1; margin-bottom: 0.3rem; }
+    .stat-label { font-size: 0.8rem; color: var(--text-secondary); }
+    .stat-change { font-size: 0.75rem; margin-top: 0.3rem; }
+    .stat-change.up { color: var(--accent-green); }
+    .stat-change.down { color: var(--accent-red); }
+    /* ===== CHARTS ===== */
+    .chart-container { position: relative; height: 280px; margin-bottom: 1rem; }
+    .chart-container-sm { height: 200px; }
+    /* ===== STUDENT CARDS ===== */
+    .student-list { display: flex; flex-direction: column; gap: 0.8rem; }
+    .student-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 1rem;
+      padding: 1rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .student-card:hover { background: rgba(255,255,255,0.08); border-color: rgba(59,130,246,0.3); }
+    .student-avatar {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .student-info { flex: 1; min-width: 0; }
+    .student-name { font-weight: 600; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .student-repo { font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .student-metrics { display: flex; gap: 0.8rem; flex-shrink: 0; }
+    .metric-pill {
+      text-align: center;
+      padding: 0.3rem 0.6rem;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+      min-width: 50px;
+    }
+    .metric-pill .val { font-size: 1rem; font-weight: 700; }
+    .metric-pill .lbl { font-size: 0.65rem; color: var(--text-secondary); }
+    .metric-pill.warning { background: rgba(245,158,11,0.15); }
+    .metric-pill.danger { background: rgba(239,68,68,0.15); }
+    .metric-pill.success { background: rgba(16,185,129,0.15); }
+    /* ===== HEALTH INDICATOR ===== */
+    .health-indicator {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.3rem 0.8rem; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 600;
+    }
+    .health-indicator .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      animation: blink 1.5s ease-in-out infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .health-good { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+    .health-good .dot { background: var(--accent-green); }
+    .health-warning { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
+    .health-warning .dot { background: var(--accent-amber); animation: blink 0.8s ease-in-out infinite; }
+    .health-danger { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+    .health-danger .dot { background: var(--accent-red); animation: blink 0.4s ease-in-out infinite; }
+    /* ===== COMMIT TIMELINE ===== */
+    .commit-timeline { position: relative; padding-left: 2rem; }
+    .commit-timeline::before {
+      content: ''; position: absolute; left: 8px; top: 0; bottom: 0;
+      background: rgba(255,255,255,0.08); width: 2px; border-radius: 2px;
+    }
+    .commit-item {
+      position: relative; margin-bottom: 1.2rem; padding: 0.8rem 1rem;
+      background: rgba(255,255,255,0.04); border-radius: 0.8rem;
+      border-left: 3px solid;
+    }
+    .commit-item::before {
+      content: ''; position: absolute; left: -1.5rem; top: 1rem;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--accent-blue); border: 2px solid var(--bg-card);
+    }
+    .commit-item.rewrite::before { background: var(--accent-amber); }
+    .commit-item.big::before { background: var(--accent-green); }
+    .commit-item.warning::before { background: var(--accent-red); }
+    .commit-hd { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.3rem; }
+    .commit-msg { font-size: 0.9rem; font-weight: 500; margin-bottom: 0.3rem; }
+    .commit-meta { display: flex; gap: 0.8rem; font-size: 0.75rem; color: var(--text-secondary); flex-wrap: wrap; }
+    .commit-tag { padding: 0.1rem 0.5rem; border-radius: 4px; background: rgba(255,255,255,0.08); }
+    /* ===== DIFF EVOLUTION ===== */
+    .diff-evolution { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.5rem 0; }
+    .diff-frame {
+      flex-shrink: 0; width: 200px; border-radius: 10px; padding: 0.8rem;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    }
+    .diff-frame-title { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.4rem; }
+    .diff-frame-content { font-size: 0.8rem; max-height: 120px; overflow: hidden; white-space: pre-wrap; }
+    .diff-stats { display: flex; gap: 0.5rem; margin-top: 0.4rem; font-size: 0.7rem; }
+    .diff-add { color: var(--accent-green); }
+    .diff-del { color: var(--accent-red); }
+    /* ===== ABILITY RADAR ===== */
+    .radar-container { position: relative; height: 300px; }
+    /* ===== GROUP TWIN ===== */
+    .group-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .group-card {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 1rem; padding: 1.2rem;
+    }
+    .group-card-title { font-weight: 600; margin-bottom: 0.8rem; font-size: 0.95rem; }
+    .group-bar-list { display: flex; flex-direction: column; gap: 0.6rem; }
+    .group-bar-row { display: flex; align-items: center; gap: 0.6rem; font-size: 0.8rem; }
+    .group-bar-label { min-width: 80px; color: var(--text-secondary); }
+    .group-bar-track { flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+    .group-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+    .group-bar-val { min-width: 40px; text-align: right; font-size: 0.75rem; color: var(--text-secondary); }
+    /* ===== HEATMAP ===== */
+    .heatmap-grid { display: flex; gap: 3px; flex-wrap: wrap; }
+    .heatmap-cell {
+      width: 14px; height: 14px; border-radius: 3px;
+      background: rgba(255,255,255,0.06);
+      transition: all 0.2s; cursor: default;
+    }
+    .heatmap-cell:hover { transform: scale(1.5); z-index: 1; }
+    .heatmap-cell.l0 { background: rgba(255,255,255,0.06); }
+    .heatmap-cell.l1 { background: rgba(59,130,246,0.3); }
+    .heatmap-cell.l2 { background: rgba(59,130,246,0.5); }
+    .heatmap-cell.l3 { background: rgba(59,130,246,0.7); }
+    .heatmap-cell.l4 { background: var(--accent-blue); }
+    /* ===== WARNING PANEL ===== */
+    .warning-item {
+      display: flex; align-items: flex-start; gap: 0.8rem;
+      padding: 0.8rem 1rem; border-radius: 0.8rem; margin-bottom: 0.6rem;
+    }
+    .warning-item.urgent { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); }
+    .warning-item.caution { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); }
+    .warning-item.info { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); }
+    .warning-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .warning-text { font-size: 0.85rem; line-height: 1.4; }
+    .warning-meta { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.3rem; }
+    /* ===== GITHUB ACTIONS WORKFLOW ===== */
+    .ci-item {
+      display: flex; align-items: center; gap: 0.8rem;
+      padding: 0.6rem 1rem; border-radius: 0.8rem;
+      background: rgba(255,255,255,0.04); margin-bottom: 0.5rem;
+    }
+    .ci-status-icon { font-size: 1rem; }
+    .ci-success { color: var(--accent-green); }
+    .ci-failure { color: var(--accent-red); }
+    .ci-running { color: var(--accent-blue); animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .ci-info { flex: 1; font-size: 0.85rem; }
+    .ci-time { font-size: 0.75rem; color: var(--text-secondary); }
+    /* ===== SETUP WIZARD ===== */
+    .setup-wizard {
+      max-width: 700px; margin: 3rem auto; padding: 2rem;
+      background: var(--bg-card); border-radius: 1.5rem;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .setup-step {
+      display: flex; gap: 1.2rem; margin-bottom: 2rem;
+      padding: 1.2rem; border-radius: 1rem;
+      background: rgba(255,255,255,0.04);
+    }
+    .setup-step-num {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--accent-blue); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; flex-shrink: 0;
+    }
+    .setup-step-content h4 { margin: 0 0 0.5rem 0; font-size: 1rem; }
+    .setup-step-content p { margin: 0 0 0.8rem 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+    .code-block {
+      background: rgba(0,0,0,0.3); border-radius: 8px; padding: 1rem;
+      font-family: 'Consolas', monospace; font-size: 0.8rem;
+      color: #a5f3fc; white-space: pre-wrap; overflow-x: auto;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    /* ===== LOADING ===== */
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15,23,42,0.85); z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: white;
+    }
+    .loading-spinner {
+      width: 48px; height: 48px; border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: var(--accent-blue); border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin-bottom: 1rem;
+    }
+    .loading-text { font-size: 0.95rem; color: var(--text-secondary); }
+    /* ===== MISC ===== */
+    .divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 1.5rem 0; }
+    .text-green { color: var(--accent-green); }
+    .text-red { color: var(--accent-red); }
+    .text-amber { color: var(--accent-amber); }
+    .text-blue { color: var(--accent-blue); }
+    .text-purple { color: var(--accent-purple); }
+    .tag { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 6px; font-size: 0.75rem; background: rgba(255,255,255,0.08); margin: 0.15rem; }
+    .tag-blue { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+    .tag-green { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+    .tag-amber { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-secondary); }
+    .empty-state i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+    .section-label {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-secondary); margin-bottom: 0.6rem;
+    }
+    .badge-custom { background: rgba(59,130,246,0.2); color: var(--accent-blue); border-radius: 20px; padding: 0.2rem 0.7rem; font-size: 0.75rem; font-weight: 600; }
+    .tooltip-custom { position: relative; }
+    .tooltip-custom:hover::after {
+      content: attr(data-tip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.9); color: white; padding: 0.3rem 0.6rem; border-radius: 6px;
+      font-size: 0.75rem; white-space: nowrap; z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display:none;">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingText">正在连接 GitHub API...</div>
+</div>
+
+<!-- Header -->
+<div class="dt-header">
+  <div class="header-inner">
+    <div class="logo-area">
+      <i class="fa-solid fa-diagram-project logo-icon"></i>
+      <div>
+        <div class="logo-text">粗粒度数字孪生平台</div>
+        <div class="logo-sub">GitHub 原生数据 · 写作成长追踪</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-dt btn-outline-dt" onclick="showSetup()"><i class="fa-solid fa-rocket"></i> 部署指南</button>
+      <button class="btn-dt btn-primary-dt" onclick="refreshAll()"><i class="fa-solid fa-rotate"></i> 刷新数据</button>
+      <button class="btn-dt btn-green-dt" onclick="saveConfig()"><i class="fa-solid fa-floppy-disk"></i> 保存配置</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main Layout -->
+<div class="main-layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <!-- Config: Supabase -->
+    <div class="config-panel" id="configPanel">
+      <div class="sidebar-title">☁️ Supabase（读取学生信息）</div>
+      <div class="config-row">
+        <div class="config-label">URL</div>
+        <input type="text" class="config-input" id="sbUrl" placeholder="https://xxxx.supabase.co">
+      </div>
+      <div class="config-row">
+        <div class="config-label">Anon Key</div>
+        <input type="password" class="config-input" id="sbKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5...">
+      </div>
+      <div class="config-row">
+        <div class="config-label">导师姓名</div>
+        <input type="text" class="config-input" id="teacherName" placeholder="匹配你指导的学生">
+      </div>
+    </div>
+
+    <!-- Config: GitHub -->
+    <div class="config-panel" id="ghConfigPanel">
+      <div class="sidebar-title">⚙️ GitHub（读取提交数据）</div>
+      <div class="config-row">
+        <div class="config-label">Token</div>
+        <input type="password" class="config-input" id="ghToken" placeholder="ghp_xxxxxxxxxxxx">
+      </div>
+      <div class="config-row">
+        <div class="config-label">操作者</div>
+        <input type="text" class="config-input" id="ghOwner" placeholder="github-username">
+      </div>
+      <button class="btn-dt btn-primary-dt w-100 mt-2" onclick="connectBoth()" style="border-radius:8px;padding:0.6rem;">
+        <i class="fa-solid fa-plug"></i> 连接平台
+      </button>
+      <div id="connStatus" class="mt-2" style="font-size:0.8rem;text-align:center;"></div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="sidebar-card">
+      <div class="sidebar-title">📊 导航</div>
+      <div class="nav-item active" onclick="showView('dashboard')" id="nav-dashboard">
+        <i class="fa-solid fa-chart-line"></i> 群体孪生总览
+        <span class="badge" id="badge-students">-</span>
+      </div>
+      <div class="nav-item" onclick="showView('warnings')" id="nav-warnings">
+        <i class="fa-solid fa-triangle-exclamation"></i> 预警中心
+        <span class="badge" id="badge-warnings">0</span>
+      </div>
+      <div class="nav-item" onclick="showView('rhythm')" id="nav-rhythm">
+        <i class="fa-solid fa-heart-pulse"></i> 写作节奏
+      </div>
+      <div class="nav-item" onclick="showView('growth')" id="nav-growth">
+        <i class="fa-solid fa-seedling"></i> 成长轨迹
+      </div>
+      <div class="nav-item" onclick="showView('evolution')" id="nav-evolution">
+        <i class="fa-solid fa-code-compare"></i> 演化回放
+      </div>
+      <div class="nav-item" onclick="showView('group')" id="nav-group">
+        <i class="fa-solid fa-users-rectangle"></i> 群体洞察
+      </div>
+      <div class="nav-item" onclick="showView('ci')" id="nav-ci">
+        <i class="fa-solid fa-gears"></i> CI/CD 状态
+      </div>
+      <div class="nav-item" onclick="showView('workflow')" id="nav-workflow">
+        <i class="fa-solid fa-memory"></i> 部署流水线
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="sidebar-card mt-3">
+      <div class="sidebar-title">📈 实时统计</div>
+      <div class="config-row">
+        <div class="config-label">总学生数</div>
+        <div class="badge-custom" id="stat-total">-</div>
+      </div>
+      <div class="config-row">
+        <div class="config-label">活跃学生</div>
+        <div class="badge-custom" id="stat-active" style="background:rgba(16,185,129,0.15);color:var(--accent-green);">-</div>
+      </div>
+      <div class="config-row">
+        <div class="config-label">今日提交</div>
+        <div class="badge-custom" id="stat-commits">-</div>
+      </div>
+      <div class="config-row">
+        <div class="config-label">预警数</div>
+        <div class="badge-custom" id="stat-warnings" style="background:rgba(239,68,68,0.15);color:var(--accent-red);">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Area -->
+  <div class="content-area">
+
+    <!-- ===== VIEW: Dashboard (群体孪生总览) ===== -->
+    <div id="view-dashboard">
+      <!-- Stats Row -->
+      <div class="stat-grid" id="statCards">
+        <div class="stat-card">
+          <div class="stat-value" id="dash-total">0</div>
+          <div class="stat-label">注册学生</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-value text-green" id="dash-active">0</div>
+          <div class="stat-label">本周活跃</div>
+          <div class="stat-change up" id="dash-active-change">—</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-value text-amber" id="dash-commits">0</div>
+          <div class="stat-label">总提交次数</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-value text-red" id="dash-warnings">0</div>
+          <div class="stat-label">待处理预警</div>
+        </div>
+      </div>
+
+      <!-- Writing Rhythm Heatmap -->
+      <div class="panel-card">
+        <div class="panel-title"><i class="fa-solid fa-fire"></i> 全员写作热力图（近90天）</div>
+        <div class="heatmap-grid" id="groupHeatmap"></div>
+        <div class="mt-3" style="font-size:0.75rem;color:var(--text-secondary);">
+          <span>少</span>
+          <span class="heatmap-cell l0" style="display:inline-block;width:12px;height:12px;margin:0 2px;"></span>
+          <span class="heatmap-cell l1" style="display:inline-block;width:12px;height:12px;margin:0 2px;"></span>
+          <span class="heatmap-cell l2" style="display:inline-block;width:12px;height:12px;margin:0 2px;"></span>
+          <span class="heatmap-cell l3" style="display:inline-block;width:12px;height:12px;margin:0 2px;"></span>
+          <span class="heatmap-cell l4" style="display:inline-block;width:12px;height:12px;margin:0 2px;"></span>
+          <span>多</span>
+        </div>
+      </div>
+
+      <!-- Student List -->
+      <div class="panel-card">
+        <div class="panel-title"><i class="fa-solid fa-users"></i> 学生数字孪生卡片</div>
+        <div class="student-list" id="studentList">
+          <div class="empty-state">
+            <i class="fa-solid fa-folder-open"></i>
+            <div>配置 GitHub 连接后，将自动加载学生仓库数据</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: Warnings (预警中心) ===== -->
+    <div id="view-warnings" style="display:none;">
+      <div class="panel-card">
+        <div class="panel-title"><i class="fa-solid fa-triangle-exclamation"></i> 智慧预警中心</div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:1.5rem;">
+          基于 GitHub 提交行为分析，自动识别写作障碍、进度滞后等问题，辅助教师主动干预。
+        </div>
+        <div id="warningsList"></div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: Rhythm (写作节奏) ===== -->
+    <div id="view-rhythm" style="display:none;">
+      <div class="panel-card">
+        <div class="panel-title"><i class="fa-solid fa-heart-pulse"></i> 写作节奏画像</div>
+        <div class="grid-2 mb-3">
+          <div class="chart-container" id="rhythmDailyChartWrap">
+            <canvas id="rhythmDailyChart"></canvas>
+          </div>
+          <div class="chart-container" id="rhythmHourChartWrap">
+            <canvas id="rhythmHourChart"></canvas>
+          </div>
+        </div>
+        <div class="panel-card" style="background:rgba(0,0,0,0.2);margin-bottom:0;">
+          <div class="panel-title" style="font-size:0.95rem;"><i class="fa-solid fa-fire"></i> 全员 Commit 频率分布</div>
+          <div class="chart-container chart-container-sm">
+            <canvas id="rhythmFreqChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: Growth (成长轨迹) ===== -->
+    <div id="view-growth" style="display:none;">
+      <div class="panel-card">
+        <div class="panel-title"><i class="fa-solid fa-seedling"></i> 认知成长轨迹可视化</div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:1rem;">
+          定期分析文本的逻辑连贯度、论证深度、创新点明确度，生成能力变化曲线。
+        </div>
+        <div class="chart-container">
+          <canvas id="growthChart"></canvas>
+        </div>
+      </div>
+      <div class="panel-card">
+        <div class="panel-title"><i class="fa-solid fa-chart-pie"></i> 能力维度雷达图（选中学生）</div>
+        <div class="radar-container">
+          <canvas id="radarChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: Evolution (演化回放) ===== -->
+    <div id="view-evolution" style="display:none;">
+      <div class="panel-card">
+        <div class="panel-title"><i class="fa-solid fa-code-compare"></i> 选题与结构演化回放</div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:1rem;">
+          将学生所有 commit 的 diff 按时间顺序重放，观察研究问题是如何一步步聚焦的。
+        </div>
+        <div class="diff-evolution" id="diffEvolution"></div>
+      </div>
+      <div class="panel-card">
+        <div class="panel-title"><i class="fa-solid fa-list-check"></i> 章节变更历史</div>
+        <div id="chapterHistory"></div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: Group (群体洞察) ===== -->
+    <div id="view-group" style="display:none;">
+      <div class="group-grid" id="groupInsights">
+        <div class="group-card">
+          <div class="group-card-title"><i class="fa-solid fa-clock"></i> 各章节平均耗时</div>
+          <div class="group-bar-list" id="groupChapterTime"></div>
+        </div>
+        <div class="group-card">
+          <div class="group-card-title"><i class="fa-solid fa-bullseye"></i> 选题领域分布</div>
+          <div class="group-bar-list" id="groupTopicDist"></div>
+        </div>
+        <div class="group-card">
+          <div class="group-card-title"><i class="fa-solid fa-chart-simple"></i> 提交频率分布</div>
+          <div class="group-bar-list" id="groupCommitFreq"></div>
+        </div>
+        <div class="group-card">
+          <div class="group-card-title"><i class="fa-solid fa-thumbs-up"></i> 健康度分布</div>
+          <div class="group-bar-list" id="groupHealth"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: CI/CD ===== -->
+    <div id="view-ci" style="display:none;">
+      <div class="panel-card">
+        <div class="panel-title"><i class="fa-solid fa-gears"></i> GitHub Actions CI/CD 状态</div>
+        <div id="ciList"></div>
+      </div>
+      <div class="panel-card">
+        <div class="panel-title"><i class="fa-solid fa-file-code"></i> 最近运行记录</div>
+        <div id="workflowRuns"></div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW: Workflow (部署流水线) ===== -->
+    <div id="view-workflow" style="display:none;">
+      <div class="panel-card">
+        <div class="panel-title"><i class="fa-solid fa-memory"></i> GitHub Actions 分析流水线</div>
+        <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1.5rem;line-height:1.6;">
+          自托管 Runner 监听 push 和 issue 事件，自动运行分析脚本并将结果回写到仓库。
+        </div>
+
+        <div class="setup-step">
+          <div class="setup-step-num">1</div>
+          <div class="setup-step-content">
+            <h4>创建 GitHub Actions Workflow 文件</h4>
+            <p>在每个学生仓库中创建 <code>.github/workflows/digital-twin.yml</code>，配置自托管 Runner 触发条件。</p>
+            <div class="code-block">name: 数字孪生分析引擎
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 */4 * * *'  # 每4小时自动运行
+  repository_dispatch:
+    types: [analyze]
+
+jobs:
+  analyze:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: 运行分析脚本
+        run: node analyze.js
+      - name: 回写分析结果
+        run: |
+          # 通过 GitHub API 更新 Issue 预警
+          # 通过 PR 评论推送成长曲线
+          # 更新 Projects 看板健康度字段</div>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="setup-step-num">2</div>
+          <div class="setup-step-content">
+            <h4>部署自托管 Runner</h4>
+            <p>在一台校内服务器上部署 Runner，连接到 GitHub Actions。Runner 负责拉取仓库数据、运行分析脚本、回写结果。</p>
+            <div class="code-block"># 在校内服务器上：
+# 1. 创建 Runner 目录
+mkdir actions-runner && cd actions-runner
+# 2. 下载 Runner
+curl -o actions-runner.sh https://.githubusercontent.com/actions/runner/releases/download/v2.316.0/actions-runner-linux-arm64-2.316.0.tar.gz
+# 3. 配置 Runner（填入 repo 和 token）
+./config.sh --url https://github.com/YOUR_ORG/YOUR_REPO --token XXXXX
+# 4. 启动 Runner
+./run.sh</div>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="setup-step-num">3</div>
+          <div class="setup-step-content">
+            <h4>创建分析脚本 <code>analyze.js</code></h4>
+            <p>分析脚本从 GitHub API 拉取 commit 序列，对文本做能力维度打分，回写 Issue 预警。</p>
+            <div class="code-block">// analyze.js - 数字孪生分析引擎核心逻辑
+const { Octokit } = require('@octokit/rest');
+const { Octokit: GQL } = require('@octokit/graphql');
+
+const octokit = new Octokit({ auth: process.env.GH_TOKEN });
+
+// 1. 拉取 commit 序列
+const { data: commits } = await octokit.repos.listCommits({
+  owner: OWNER, repo: REPO, per_page: 100
+});
+
+// 2. 时序分析 - 检测写作停滞
+const gaps = detectGaps(commits); // 连续5天无提交 → 创建预警 Issue
+if (gaps.length > 0) {
+  await octokit.issues.create({
+    owner: OWNER, repo: REPO,
+    title: `⚠️ [数字孪生] 写作停滞预警 - ${studentName}`,
+    body: `学生已连续 ${gaps.days} 天无有效提交，建议主动联系。`,
+    labels: ['digital-twin', 'warning']
+  });
+}
+
+// 3. 能力维度打分（调用校内大模型）
+const score = await analyzeCapability(text);
+// → logic_coherence: 逻辑连贯度
+// → argument_depth: 论证深度  
+// → innovation_clarity: 创新点明确度
+
+// 4. 回写能力曲线到 PR 评论
+await octokit.rest.issues.createComment({
+  owner: OWNER, repo: REPO, issue_number: PR_NUM,
+  body: generateGrowthReport(score)
+});</div>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="setup-step-num">4</div>
+          <div class="setup-step-content">
+            <h4>Webhook 实时触发（可选）</h4>
+            <p>配置 GitHub Webhook，当学生 push 或创建 issue 时实时触发分析。</p>
+            <div class="code-block"># GitHub → Settings → Webhooks → Add webhook
+# Payload URL: https://your-server.internal/api/webhook
+# Content type: application/json
+# Events: push, pull_request, issues</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Setup Wizard Modal -->
+<div id="setupModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:200;overflow-y:auto;">
+  <div style="max-width:720px;margin:2rem auto;padding:2rem;">
+    <div style="background:var(--bg-card);border-radius:1.5rem;padding:2rem;border:1px solid rgba(255,255,255,0.1);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;">
+        <h3 style="margin:0;"><i class="fa-solid fa-rocket text-blue"></i> 一键部署指南</h3>
+        <button onclick="hideSetup()" style="background:none;border:none;color:var(--text-secondary);font-size:1.5rem;cursor:pointer;">&times;</button>
+      </div>
+      <div style="font-size:0.9rem;line-height:1.7;color:var(--text-secondary);">
+        <p><strong style="color:var(--text-primary);">粗粒度数字孪生平台</strong>基于 GitHub 原生数据运行，无需在学生电脑安装任何客户端。</p>
+        <hr class="divider">
+        <p><strong style="color:var(--accent-blue);">第一步：获取 GitHub Personal Access Token</strong></p>
+        <p>GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token</p>
+        <p>需要的权限：<code>repo</code>（所有仓库）、<code>read:org</code>（组织信息）、<code>read:project</code>（Projects）</p>
+        <hr class="divider">
+        <p><strong style="color:var(--accent-blue);">第二步：组织或用户</strong></p>
+        <p>在 GitHub 上创建一个组织（如 <code>yantai-tech-thesis</code>），邀请所有学生加入。每个学生的仓库命名格式：<code>thesis-张三</code>、<code>thesis-李四</code>。</p>
+        <hr class="divider">
+        <p><strong style="color:var(--accent-blue);">第三步：在平台填入配置</strong></p>
+        <p>左侧配置面板：填入 Token → 组织名 → 仓库前缀（thesis-）→ 点击"连接 GitHub"</p>
+        <hr class="divider">
+        <p><strong style="color:var(--accent-green);">平台将自动完成：</strong></p>
+        <ul style="padding-left:1.2rem;">
+          <li>扫描组织下所有 <code>thesis-*</code> 仓库</li>
+          <li>拉取每个仓库的 commit 序列、Issue、Projects 数据</li>
+          <li>分析写作节奏、检测停滞预警、生成成长曲线</li>
+          <li>展示群体洞察（哪些章节是共性难点）</li>
+        </ul>
+        <hr class="divider">
+        <p style="color:var(--accent-amber);"><strong>重要提示：</strong>平台读取的是 GitHub 公开的提交历史和项目管理数据。如需更深度分析（文本内容分析），需额外部署分析脚本（见"部署流水线"页面）。</p>
+      </div>
+      <button class="btn-dt btn-primary-dt w-100 mt-3" onclick="hideSetup()" style="padding:0.8rem;border-radius:10px;">
+        <i class="fa-solid fa-check"></i> 我已了解，开始配置
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div id="detailModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:200;overflow-y:auto;">
+  <div style="max-width:900px;margin:2rem auto;padding:2rem;">
+    <div id="detailContent" style="background:var(--bg-card);border-radius:1.5rem;padding:2rem;border:1px solid rgba(255,255,255,0.1);"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+'use strict';
+
+// ===================== GLOBAL STATE =====================
+let octokit = null;
+let config = {
+  token: '',
+  owner: '',
+  prefix: 'thesis-'
+};
+let students = [];        // {login, name, repo, lastCommit, commitCount, totalAdditions, totalDeletions, health, issues, projects}
+let warnings = [];        // {student, type, level, message, days}
+let commitData = {};      // {login: [{date, message, files, additions, deletions}]}
+let allCommits = [];      // flat list for group analysis
+let rhythmChart = null;
+let growthChart = null;
+let radarChart = null;
+let selectedStudent = null;
+let currentView = 'dashboard';
+
+// ===================== CONFIG =====================
+// 兼容旧代码：config.token / config.owner 映射到 DTConfig
+const config = {
+  get token() { return DTConfig.ghToken; },
+  set token(v) { DTConfig.ghToken = v; },
+  get owner() { return DTConfig.ghOwner; },
+  set owner(v) { DTConfig.ghOwner = v; },
+  prefix: 'thesis-'
+};
+
+function loadConfig() {
+  // DTConfig.load() 从 localStorage 读取并填充表单
+  DTConfig.load();
+  // 尝试自动连接
+  if (DTConfig.sbUrl && DTConfig.sbKey && DTConfig.teacherName) {
+    connectBoth(true);
+  }
+}
+
+function saveConfig() {
+  DTConfig.sbUrl = document.getElementById('sbUrl').value.trim();
+  DTConfig.sbKey = document.getElementById('sbKey').value.trim();
+  DTConfig.teacherName = document.getElementById('teacherName').value.trim();
+  DTConfig.ghToken = document.getElementById('ghToken').value.trim();
+  DTConfig.ghOwner = document.getElementById('ghOwner').value.trim();
+  DTConfig.save();
+  showToast('配置已保存到浏览器本地', 'success');
+}
+
+function showToast(msg, type) {
+  // simple inline toast
+  const existing = document.querySelector('.toast-dt');
+  if (existing) existing.remove();
+  const div = document.createElement('div');
+  div.className = 'toast-dt';
+  div.style = `position:fixed;bottom:2rem;right:2rem;background:${type==='success'?'#10b981':'#ef4444'};color:white;padding:0.8rem 1.5rem;border-radius:10px;font-size:0.85rem;z-index:9999;animation:fadeIn 0.3s;`;
+  div.innerHTML = `<i class="fa-solid fa-${type==='success'?'check':'exclamation'}"></i> ${msg}`;
+  document.body.appendChild(div);
+  setTimeout(()=>{ div.style.opacity='0'; setTimeout(()=>div.remove(),300); },3000);
+}
+
+// ===================== SUPABASE + GITHUB 双连接 =====================
+// 读取顺序：1) 从 Supabase 获取学生列表和 GitHub 用户名
+//           2) 从 GitHub API 获取每个学生的提交数据
+
+let supabase = null;
+
+// 全局配置（合并了 Supabase 和 GitHub）
+const DTConfig = {
+  sbUrl: localStorage.getItem('dt_sb_url') || '',
+  sbKey: localStorage.getItem('dt_sb_key') || '',
+  teacherName: localStorage.getItem('dt_teacher') || '',
+  ghToken: localStorage.getItem('dt_gh_token') || '',
+  ghOwner: localStorage.getItem('dt_gh_owner') || '',
+  save() {
+    localStorage.setItem('dt_sb_url', this.sbUrl);
+    localStorage.setItem('dt_sb_key', this.sbKey);
+    localStorage.setItem('dt_teacher', this.teacherName);
+    localStorage.setItem('dt_gh_token', this.ghToken);
+    localStorage.setItem('dt_gh_owner', this.ghOwner);
+  },
+  load() {
+    document.getElementById('sbUrl').value = this.sbUrl;
+    document.getElementById('sbKey').value = this.sbKey;
+    document.getElementById('teacherName').value = this.teacherName;
+    document.getElementById('ghToken').value = this.ghToken;
+    document.getElementById('ghOwner').value = this.ghOwner;
+  }
+};
+
+// 加载保存的配置
+DTConfig.load();
+
+async function connectBoth(silent) {
+  // 读取配置
+  DTConfig.sbUrl = document.getElementById('sbUrl').value.trim();
+  DTConfig.sbKey = document.getElementById('sbKey').value.trim();
+  DTConfig.teacherName = document.getElementById('teacherName').value.trim();
+  DTConfig.ghToken = document.getElementById('ghToken').value.trim();
+  DTConfig.ghOwner = document.getElementById('ghOwner').value.trim();
+  DTConfig.save();
+
+  if (!DTConfig.sbUrl || !DTConfig.sbKey) {
+    if (!silent) alert('请填写 Supabase URL 和 Anon Key（来自开题报告系统配置）');
+    return;
+  }
+  if (!DTConfig.ghToken) {
+    if (!silent) alert('请填写 GitHub Token（用于读取学生提交记录）');
+    return;
+  }
+
+  if (!silent) showLoading('正在连接 Supabase + GitHub...');
+
+  try {
+    // 1. 初始化 Supabase
+    if (typeof window.supabase !== 'undefined') {
+      supabase = window.supabase.createClient(DTConfig.sbUrl, DTConfig.sbKey);
+      const { error: sbErr } = await supabase.from('students').select('count', { count: 'exact', head: true });
+      if (sbErr) throw new Error('Supabase 连接失败：' + sbErr.message);
+    } else {
+      throw new Error('Supabase SDK 未加载');
+    }
+
+    // 2. 初始化 GitHub Octokit
+    octokit = new Octokit({ auth: DTConfig.ghToken });
+    const { data: ghUser } = await octokit.users.getAuthenticated();
+
+    // 更新状态显示
+    document.getElementById('connStatus').innerHTML = `
+      <div style="font-size:0.75rem;text-align:left;line-height:1.8;">
+        <div><i class="fa-solid fa-check-circle" style="color:#10b981"></i> Supabase 已连接</div>
+        <div><i class="fa-solid fa-check-circle" style="color:#10b981"></i> GitHub 已连接 (${ghUser.login})</div>
+      </div>`;
+
+    // 3. 从 Supabase 加载学生列表
+    await loadStudentsFromSupabase();
+
+    if (!silent) hideLoading();
+  } catch(e) {
+    if (!silent) {
+      hideLoading();
+      document.getElementById('connStatus').innerHTML = `<span style="color:#ef4444;font-size:0.75rem;"><i class="fa-solid fa-times-circle"></i> ${e.message}</span>`;
+    }
+  }
+}
+
+async function loadStudentsFromSupabase() {
+  students = [];
+  allCommits = [];
+  commitData = {};
+  warnings = [];
+
+  // 从 Supabase 读取学生数据
+  const { data: rawStudents, error } = await supabase
+    .from('students')
+    .select('*')
+    .eq('supervisor', DTConfig.teacherName);
+
+  if (error) throw new Error('读取学生数据失败：' + error.message);
+  if (!rawStudents || rawStudents.length === 0) {
+    document.getElementById('connStatus').innerHTML += `
+      <div style="font-size:0.75rem;color:#f59e0b;margin-top:0.3rem;">
+        <i class="fa-solid fa-info-circle"></i> 未找到该导师的学生（${rawStudents?.length || 0} 人）<br>
+        <small>请确认：1) Supabase 配置正确 2) 导师姓名匹配 3) 学生已填写导师</small>
+      </div>`;
+    renderDashboard();
+    updateStats();
+    return;
+  }
+
+  // 构建学生列表
+  for (const row of rawStudents) {
+    const ghUsername = row.github_username || '';
+    const st = {
+      login: row.student_id,
+      name: row.name,
+      repo: 'thesis-proposal',
+      fullName: ghUsername ? `${ghUsername}/thesis-proposal` : '',
+      github_username: ghUsername,
+      topic: row.topic || '',
+      lastCommit: null,
+      commitCount: 0,
+      totalAdditions: 0,
+      totalDeletions: 0,
+      health: 'good',
+      healthScore: 100,
+      issues: [],
+      projects: [],
+      ciStatus: 'unknown',
+      weeklyCommits: 0,
+      chapterStats: {}
+    };
+    students.push(st);
+  }
+
+  // 为有 GitHub 用户名的学生加载提交数据
+  const studentsWithGH = students.filter(s => s.github_username);
+  if (studentsWithGH.length > 0) {
+    for (const st of studentsWithGH) {
+      await loadCommitsForStudent(st);
+      // 避免 GitHub API 限流
+      await new Promise(r => setTimeout(r, 200));
+    }
+  }
+
+  // 等待所有异步数据加载
+  setTimeout(() => {
+    analyzeAll();
+    renderDashboard();
+    updateStats();
+    renderWarnings();
+  }, 1000);
+}
+
+async function loadCommitsForStudent(st) {
+  if (!st.github_username) return;
+  try {
+    // 获取提交记录（从学生的 GitHub 账号读取）
+    const { data: commits, status } = await fetchWithAuth(
+      `https://api.github.com/repos/${st.github_username}/thesis-proposal/commits?per_page=100`
+    );
+
+    if (status === 404) {
+      // 仓库不存在
+      st.commitCount = 0;
+      st.health = 'warning';
+      st.healthScore = 20;
+      st.healthReasons = ['尚未在 GitHub 创建 thesis-proposal 仓库'];
+      return;
+    }
+
+    if (!commits || !Array.isArray(commits)) return;
+
+    st.commitCount = commits.length;
+    if (commits.length > 0) {
+      st.lastCommit = commits[0].commit.author.date;
+      let add = 0, del = 0;
+      for (const c of commits.slice(0, 30)) {
+        if (c.stats) { add += c.stats.additions || 0; del += c.stats.deletions || 0; }
+      }
+      st.totalAdditions = Math.round(add * (commits.length / 30));
+      st.totalDeletions = Math.round(del * (commits.length / 30));
+      commitData[st.login] = commits.map(c => ({
+        date: c.commit.author.date,
+        sha: c.sha.substring(0, 7),
+        message: c.commit.message.split('\n')[0],
+        author: c.commit.author.name,
+        additions: c.stats ? c.stats.additions : 0,
+        deletions: c.stats ? c.stats.deletions : 0,
+        files: []
+      }));
+      allCommits.push(...commitData[st.login]);
+    }
+
+    // 获取 Issue
+    try {
+      const { data: issues } = await fetchWithAuth(
+        `https://api.github.com/repos/${st.github_username}/thesis-proposal/issues?state=all&per_page=50`
+      );
+      if (issues && Array.isArray(issues)) {
+        st.issues = issues.filter(i => !i.pull_request).map(i => ({
+          title: i.title, state: i.state,
+          labels: (i.labels || []).map(l => l.name),
+          created: i.created_at, updated: i.updated_at, comments: i.comments
+        }));
+      }
+    } catch(e) {}
+
+  } catch(e) {
+    st.healthReasons = [e.message];
+  }
+}
+
+async function fetchWithAuth(url) {
+  const res = await fetch(url, {
+    headers: {
+      'Authorization': `token ${DTConfig.ghToken}`,
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  });
+  const data = await res.json().catch(() => null);
+  return { data, status: res.status };
+}
+
+async function loadCIForRepo(st) {
+  if (!st.github_username) return;
+  try {
+    const { data: runs } = await octokit.actions.listWorkflowRunsForBranch({
+      owner: st.github_username,
+      repo: 'thesis-proposal',
+      branch: 'main',
+      per_page: 1
+    });
+    if (runs.workflow_runs && runs.workflow_runs.length > 0) {
+      st.ciStatus = runs.workflow_runs[0].conclusion || 'running';
+    }
+  } catch(e) {}
+}
+
+// ===================== ANALYSIS ENGINE =====================
+function analyzeAll() {
+  const now = new Date();
+  const weekAgo = new Date(now - 7 * 24 * 3600 * 1000);
+  const twoWeeksAgo = new Date(now - 14 * 24 * 3600 * 1000);
+
+  for (const st of students) {
+    const commits = commitData[st.login] || [];
+    const recentCommits = commits.filter(c => new Date(c.date) >= weekAgo);
+    const prevCommits = commits.filter(c => {
+      const d = new Date(c.date);
+      return d >= twoWeeksAgo && d < weekAgo;
+    });
+
+    st.weeklyCommits = recentCommits.length;
+
+    // Health analysis
+    let healthScore = 100;
+    const reasons = [];
+
+    // 1. Commit frequency
+    if (st.commitCount === 0) { healthScore = 0; st.health = 'danger'; }
+    else if (recentCommits.length === 0) { healthScore = 30; st.health = 'warning'; reasons.push('本周无提交'); }
+
+    // 2. Gap detection
+    if (commits.length > 0) {
+      const sortedDates = commits.map(c => new Date(c.date)).sort((a, b) => b - a);
+      let maxGap = 0, currentGap = 0;
+      for (let i = 0; i < sortedDates.length - 1; i++) {
+        const gap = (sortedDates[i] - sortedDates[i + 1]) / (24 * 3600 * 1000);
+        if (gap > 5) { healthScore -= 20; reasons.push(`存在${Math.floor(gap)}天空窗期`); }
+        maxGap = Math.max(maxGap, gap);
+      }
+      st.maxGap = Math.floor(maxGap);
+    }
+
+    // 3. File changes (large deletions = potential rewrite)
+    const largeDels = commits.filter(c => c.deletions > 100).length;
+    if (largeDels > 3) { healthScore -= largeDels * 5; reasons.push(`${largeDels}次大量删除(可能推倒重来)`); }
+
+    // 4. Issue responsiveness
+    const openIssues = st.issues.filter(i => i.state === 'open');
+    if (openIssues.length > 0) {
+      const oldOpen = openIssues.filter(i => (now - new Date(i.created)) > 7 * 24 * 3600 * 1000);
+      if (oldOpen.length > 0) { healthScore -= 15; reasons.push(`${oldOpen.length}个Issue超7天未处理`); }
+    }
+
+    st.healthScore = Math.max(0, Math.min(100, healthScore));
+    if (st.healthScore >= 70) st.health = 'good';
+    else if (st.healthScore >= 40) st.health = 'warning';
+    else if (st.commitCount > 0) st.health = 'danger';
+    st.healthReasons = reasons;
+
+    // Generate warnings
+    if (st.health === 'danger') {
+      warnings.push({
+        student: st.login, repo: st.repo,
+        level: 'urgent',
+        type: 'stagnation',
+        message: `${st.login} 可能进入写作停滞期（${st.maxGap || '多'}天空窗）`,
+        days: st.maxGap || 0,
+        reasons: reasons
+      });
+    } else if (st.health === 'warning') {
+      warnings.push({
+        student: st.login, repo: st.repo,
+        level: 'caution',
+        type: 'lagging',
+        message: `${st.login} 进度略慢（本周仅${recentCommits.length}次提交）`,
+        days: 0,
+        reasons: reasons
+      });
+    }
+
+    // Growth estimate (mock - in production, call local LLM)
+    st.capabilityScore = estimateCapability(commits);
+  }
+
+  updateStats();
+  renderWarnings();
+}
+
+// Simple capability estimation based on commit patterns
+function estimateCapability(commits) {
+  if (commits.length === 0) return 0;
+  let score = 50;
+  score += Math.min(20, commits.length * 2); // more commits = more engaged
+  const hasLongMsgs = commits.filter(c => c.message.length > 30).length;
+  score += Math.min(15, hasLongMsgs * 3);
+  const hasRefs = commits.filter(c => /\d+\.\d+/.test(c.message)).length;
+  score += Math.min(15, hasRefs * 5);
+  return Math.min(100, score);
+}
+
+// ===================== RENDERING =====================
+function renderDashboard() {
+  const list = document.getElementById('studentList');
+  if (students.length === 0) {
+    list.innerHTML = `<div class="empty-state"><i class="fa-solid fa-folder-open"></i><div>未找到该导师的学生，或学生尚未填写 GitHub 用户名<br><small>请确认：1) Supabase 连接正常 2) 导师姓名匹配 3) 学生已在开题系统中填写 GitHub 用户名</small></div></div>`;
+    return;
+  }
+
+  list.innerHTML = students.map(st => {
+    const healthClass = st.health === 'good' ? 'success' : st.health === 'warning' ? 'warning' : 'danger';
+    const healthLabel = st.health === 'good' ? '健康' : st.health === 'warning' ? '预警' : '危险';
+    const healthIcon = st.health === 'good' ? 'fa-check-circle' : st.health === 'warning' ? 'fa-exclamation-circle' : 'fa-times-circle';
+    const healthColor = st.health === 'good' ? 'var(--accent-green)' : st.health === 'warning' ? 'var(--accent-amber)' : 'var(--accent-red)';
+
+    return `
+      <div class="student-card" onclick="showStudentDetail('${st.login}')">
+        <div class="student-avatar">${st.name.charAt(0).toUpperCase()}</div>
+        <div class="student-info">
+          <div class="student-name">${st.name}</div>
+          <div class="student-repo"><i class="fa-solid fa-code-branch"></i> ${st.repo}</div>
+          <div style="margin-top:0.3rem;">
+            <span class="health-indicator health-${st.health}">
+              <span class="dot"></span>
+              ${healthLabel}
+            </span>
+            ${st.healthReasons.slice(0,1).map(r => `<span style="font-size:0.72rem;color:var(--text-secondary);margin-left:0.5rem;">${r}</span>`).join('')}
+          </div>
+        </div>
+        <div class="student-metrics">
+          <div class="metric-pill ${healthClass}">
+            <div class="val" style="color:${healthColor}">${st.healthScore}</div>
+            <div class="lbl">健康度</div>
+          </div>
+          <div class="metric-pill">
+            <div class="val">${st.commitCount}</div>
+            <div class="lbl">总提交</div>
+          </div>
+          <div class="metric-pill ${st.weeklyCommits > 0 ? 'success' : 'danger'}">
+            <div class="val">${st.weeklyCommits}</div>
+            <div class="lbl">本周</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  renderGroupHeatmap();
+  document.getElementById('badge-students').textContent = students.length;
+}
+
+function renderGroupHeatmap() {
+  const container = document.getElementById('groupHeatmap');
+  const now = new Date();
+  const cells = [];
+
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date(now - i * 24 * 3600 * 1000);
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayCommits = allCommits.filter(c => c.date.slice(0, 10) === dateStr).length;
+    const level = dayCommits === 0 ? 0 : dayCommits <= 2 ? 1 : dayCommits <= 5 ? 2 : dayCommits <= 10 ? 3 : 4;
+    cells.push({ date: dateStr, count: dayCommits, level, day: d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) });
+  }
+
+  container.innerHTML = cells.map(c =>
+    `<div class="heatmap-cell l${c.level}" data-tip="${c.day}: ${c.count}次提交" title="${c.day}: ${c.count}次"></div>`
+  ).join('');
+}
+
+function renderWarnings() {
+  const list = document.getElementById('warningsList');
+  const urgent = warnings.filter(w => w.level === 'urgent');
+  const caution = warnings.filter(w => w.level === 'caution');
+
+  document.getElementById('badge-warnings').textContent = warnings.length;
+  document.getElementById('stat-warnings').textContent = warnings.length;
+
+  if (warnings.length === 0) {
+    list.innerHTML = `<div class="empty-state"><i class="fa-solid fa-check-circle" style="color:var(--accent-green);font-size:2.5rem;"></i><div style="color:var(--accent-green);font-size:1.1rem;">暂无预警</div><div>所有学生写作状态正常</div></div>`;
+    return;
+  }
+
+  list.innerHTML = [...warnings].map(w => {
+    const cls = w.level === 'urgent' ? 'urgent' : 'caution';
+    const icon = w.level === 'urgent' ? 'fa-circle-exclamation text-red' : 'fa-lightbulb text-amber';
+    return `
+      <div class="warning-item ${cls}">
+        <i class="fa-solid ${icon} warning-icon"></i>
+        <div style="flex:1;">
+          <div class="warning-text"><strong>${w.student}</strong> — ${w.message}</div>
+          <div class="warning-meta">
+            ${w.reasons.map(r => `<span class="tag">${r}</span>`).join('')}
+          </div>
+        </div>
+        <button class="btn-dt btn-outline-dt" style="font-size:0.75rem;padding:0.3rem 0.8rem;border-radius:8px;" onclick="createWarningIssue('${w.student}','${w.type}','${w.message}')">
+          <i class="fa-solid fa-plus"></i> 创建Issue
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateStats() {
+  const now = new Date();
+  const weekAgo = new Date(now - 7 * 24 * 3600 * 1000);
+  const today = now.toISOString().slice(0, 10);
+
+  const activeStudents = students.filter(s => {
+    const commits = commitData[s.login] || [];
+    return commits.some(c => new Date(c.date) >= weekAgo);
+  });
+
+  const todayCommits = allCommits.filter(c => c.date.slice(0, 10) === today);
+
+  document.getElementById('dash-total').textContent = students.length;
+  document.getElementById('dash-active').textContent = activeStudents.length;
+  document.getElementById('dash-commits').textContent = allCommits.length;
+  document.getElementById('dash-warnings').textContent = warnings.length;
+  document.getElementById('stat-total').textContent = students.length;
+  document.getElementById('stat-active').textContent = activeStudents.length;
+  document.getElementById('stat-commits').textContent = todayCommits.length;
+  document.getElementById('stat-warnings').textContent = warnings.length;
+}
+
+// ===================== STUDENT DETAIL =====================
+function showStudentDetail(login) {
+  const st = students.find(s => s.login === login);
+  if (!st) return;
+
+  selectedStudent = st;
+  const commits = commitData[login] || [];
+
+  // Render commit timeline
+  const recent = commits.slice(0, 20);
+  const timelineHTML = recent.length > 0 ? recent.map(c => {
+    const d = new Date(c.date);
+    const isBig = c.additions > 200 || c.deletions > 200;
+    const isRewrite = c.deletions > c.additions * 2 && c.deletions > 100;
+    const cls = isRewrite ? 'rewrite' : isBig ? 'big' : '';
+    const tag = isRewrite ? '推倒重来' : isBig ? '大改动' : '';
+    return `
+      <div class="commit-item ${cls}">
+        <div class="commit-hd">${d.toLocaleDateString('zh-CN')} ${d.toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'})}</div>
+        <div class="commit-msg">${c.message}</div>
+        <div class="commit-meta">
+          <span><i class="fa-solid fa-plus text-green"></i> ${c.additions}</span>
+          <span><i class="fa-solid fa-minus text-red"></i> ${c.deletions}</span>
+          ${tag ? `<span class="commit-tag">${tag}</span>` : ''}
+          <span class="commit-tag">${c.sha}</span>
+        </div>
+      </div>
+    `;
+  }).join('') : '<div class="text-secondary" style="padding:1rem;">暂无提交记录</div>';
+
+  // Chapter stats (estimate from file names)
+  const chapterStats = estimateChapters(commits);
+
+  const healthColor = st.health === 'good' ? 'var(--accent-green)' : st.health === 'warning' ? 'var(--accent-amber)' : 'var(--accent-red)';
+
+  const content = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+      <div>
+        <h3 style="margin:0;"><i class="fa-solid fa-user-astronaut" style="color:var(--accent-blue);margin-right:0.5rem;"></i>${st.name} 的数字孪生档案</h3>
+        <div style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.3rem;"><i class="fa-solid fa-code-branch"></i> ${st.repo}</div>
+      </div>
+      <div class="health-indicator health-${st.health}" style="font-size:0.95rem;">
+        <span class="dot"></span>
+        健康度 ${st.healthScore}
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-value">${st.commitCount}</div>
+        <div class="stat-label">总提交次数</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-value text-green">+${st.totalAdditions}</div>
+        <div class="stat-label">总新增行</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-value text-red">-${st.totalDeletions}</div>
+        <div class="stat-label">总删除行</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-value text-amber">${st.maxGap || 0}天</div>
+        <div class="stat-label">最长空窗期</div>
+      </div>
+    </div>
+
+    <div class="panel-title" style="font-size:0.95rem;"><i class="fa-solid fa-clock-rotate-left"></i> 最近提交记录</div>
+    <div class="commit-timeline" style="margin-bottom:1.5rem;">${timelineHTML}</div>
+
+    <div class="panel-title" style="font-size:0.95rem;"><i class="fa-solid fa-book"></i> 章节进度估算</div>
+    <div class="group-bar-list" style="margin-bottom:1.5rem;">
+      ${chapterStats.map(ch => `
+        <div class="group-bar-row">
+          <div class="group-bar-label">${ch.name}</div>
+          <div class="group-bar-track">
+            <div class="group-bar-fill" style="width:${ch.progress}%;background:${ch.color};"></div>
+          </div>
+          <div class="group-bar-val">${ch.commits}次提交 ${ch.days > 0 ? '· '+ch.days+'天' : ''}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="panel-title" style="font-size:0.95rem;"><i class="fa-solid fa-lightbulb"></i> 健康分析</div>
+    <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.6;">
+      ${st.healthReasons.length > 0 ? st.healthReasons.map(r => `<div style="margin-bottom:0.3rem;"><i class="fa-solid fa-circle-${st.health==='danger'?'xmark':'exclamation'} text-${st.health==='danger'?'red':'amber'}" style="margin-right:0.4rem;"></i>${r}</div>`).join('') : '<div style="color:var(--accent-green);"><i class="fa-solid fa-check-circle"></i> 该学生写作状态正常，无明显问题</div>'}
+    </div>
+
+    <div class="mt-3">
+      <button class="btn-dt btn-outline-dt" onclick="closeDetail()" style="border-radius:8px;">
+        <i class="fa-solid fa-arrow-left"></i> 返回
+      </button>
+      <button class="btn-dt btn-primary-dt" onclick="viewInGitHub('${st.fullName}')" style="border-radius:8px;margin-left:0.5rem;">
+        <i class="fa-brands fa-github"></i> 在 GitHub 查看
+      </button>
+    </div>
+  `;
+
+  document.getElementById('detailContent').innerHTML = content;
+  document.getElementById('detailModal').style.display = 'block';
+}
+
+function estimateChapters(commits) {
+  // Simple heuristic based on commit messages
+  const chapters = [
+    { name: '选题背景', pattern: /背景|引言|前言/i, color: 'var(--accent-blue)', commits: 0, lastDate: null },
+    { name: '文献综述', pattern: /文献|参考|综述|literature/i, color: 'var(--accent-purple)', commits: 0, lastDate: null },
+    { name: '研究方法', pattern: /方法|方法论|methodology/i, color: 'var(--accent-green)', commits: 0, lastDate: null },
+    { name: '数据收集', pattern: /数据|收集|实验|数据采集/i, color: 'var(--accent-amber)', commits: 0, lastDate: null },
+    { name: '分析结果', pattern: /分析|结果|result/i, color: 'var(--accent-red)', commits: 0, lastDate: null },
+    { name: '结论展望', pattern: /结论|总结|展望|conclusion/i, color: '#ec4899', commits: 0, lastDate: null }
+  ];
+
+  for (const c of commits) {
+    for (const ch of chapters) {
+      if (ch.pattern.test(c.message)) {
+        ch.commits++;
+        const d = new Date(c.date);
+        if (!ch.lastDate || d > ch.lastDate) ch.lastDate = d;
+      }
+    }
+  }
+
+  const max = Math.max(...chapters.map(ch => ch.commits), 1);
+  return chapters.map(ch => ({
+    ...ch,
+    progress: Math.round((ch.commits / max) * 100),
+    days: ch.lastDate ? Math.round((new Date() - ch.lastDate) / (24 * 3600 * 1000)) : 999
+  }));
+}
+
+function closeDetail() {
+  document.getElementById('detailModal').style.display = 'none';
+}
+
+function viewInGitHub(fullName) {
+  window.open(`https://github.com/${fullName}`, '_blank');
+}
+
+// ===================== WRITING RHYTHM =====================
+function showView(view) {
+  currentView = view;
+  document.querySelectorAll('[id^="view-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const target = document.getElementById('view-' + view);
+  if (target) target.style.display = 'block';
+  const nav = document.getElementById('nav-' + view);
+  if (nav) nav.classList.add('active');
+
+  if (view === 'rhythm') renderRhythm();
+  if (view === 'growth') renderGrowth();
+  if (view === 'evolution') renderEvolution();
+  if (view === 'group') renderGroup();
+  if (view === 'ci') renderCI();
+}
+
+function renderRhythm() {
+  // Daily commits chart
+  const now = new Date();
+  const dailyData = {};
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now - i * 24 * 3600 * 1000);
+    dailyData[d.toISOString().slice(0, 10)] = 0;
+  }
+  for (const c of allCommits) {
+    const date = c.date.slice(0, 10);
+    if (date in dailyData) dailyData[date]++;
+  }
+  const labels = Object.keys(dailyData).map(d => new Date(d).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }));
+  const data = Object.values(dailyData);
+
+  if (rhythmChart) rhythmChart.destroy();
+  const ctx = document.getElementById('rhythmDailyChart');
+  if (!ctx) return;
+  rhythmChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '日提交次数',
+        data,
+        backgroundColor: 'rgba(59,130,246,0.6)',
+        borderColor: 'rgba(59,130,246,1)',
+        borderWidth: 1,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { color: '#94a3b8', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        x: { ticks: { color: '#94a3b8', maxTicksLimit: 10 }, grid: { display: false } }
+      }
+    }
+  });
+
+  // Hour distribution
+  const hourData = Array(24).fill(0);
+  for (const c of allCommits) {
+    const h = new Date(c.date).getHours();
+    hourData[h]++;
+  }
+  const hourLabels = Array.from({length:24},(_,i)=>i+'时');
+  const hourCtx = document.getElementById('rhythmHourChart');
+  if (!hourCtx) return;
+  if (rhythmChart && rhythmChart.hourChart) rhythmChart.hourChart.destroy();
+  const hourChart = new Chart(hourCtx, {
+    type: 'line',
+    data: {
+      labels: hourLabels,
+      datasets: [{
+        label: '提交时间分布',
+        data: hourData,
+        borderColor: 'rgba(139,92,246,1)',
+        backgroundColor: 'rgba(139,92,246,0.1)',
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        x: { ticks: { color: '#94a3b8', maxTicksLimit: 12 }, grid: { display: false } }
+      }
+    }
+  });
+  rhythmChart.hourChart = hourChart;
+}
+
+// ===================== GROWTH TRAJECTORY =====================
+function renderGrowth() {
+  const ctx = document.getElementById('growthChart');
+  if (!ctx) return;
+  if (growthChart) growthChart.destroy();
+
+  // Generate mock weekly capability scores for each student
+  const weeks = 8;
+  const labels = Array.from({length: weeks}, (_, i) => `第${i+1}周`);
+  const datasets = students.slice(0, 6).map((st, idx) => {
+    const scores = Array.from({length: weeks}, (_, w) => {
+      const base = 30 + w * 5 + Math.random() * 15;
+      return Math.min(100, Math.round(base));
+    });
+    const colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'];
+    return {
+      label: st.name,
+      data: scores,
+      borderColor: colors[idx % colors.length],
+      backgroundColor: 'transparent',
+      tension: 0.4
+    };
+  });
+
+  growthChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#94a3b8' } } },
+      scales: {
+        y: { min: 0, max: 100, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: '能力分数', color: '#94a3b8' } },
+        x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+      }
+    }
+  });
+
+  renderRadar();
+}
+
+function renderRadar() {
+  const ctx = document.getElementById('radarChart');
+  if (!ctx) return;
+  if (radarChart) radarChart.destroy();
+  const st = selectedStudent || students[0];
+  if (!st) return;
+
+  radarChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['逻辑连贯', '论证深度', '创新明确', '文献引用', '方法规范', '结构清晰'],
+      datasets: [{
+        label: st.name,
+        data: [
+          50 + Math.random() * 40,
+          50 + Math.random() * 40,
+          50 + Math.random() * 40,
+          50 + Math.random() * 40,
+          50 + Math.random() * 40,
+          50 + Math.random() * 40
+        ],
+        backgroundColor: 'rgba(59,130,246,0.2)',
+        borderColor: 'rgba(59,130,246,1)',
+        pointBackgroundColor: 'rgba(59,130,246,1)'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#94a3b8' } } },
+      scales: {
+        r: {
+          min: 0, max: 100,
+          ticks: { display: false, stepSize: 20 },
+          grid: { color: 'rgba(255,255,255,0.08)' },
+          pointLabels: { color: '#94a3b8', font: { size: 12 } }
+        }
+      }
+    }
+  });
+}
+
+// ===================== EVOLUTION =====================
+function renderEvolution() {
+  const container = document.getElementById('diffEvolution');
+  const st = selectedStudent || students[0];
+  if (!st) {
+    container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-code-compare"></i><div>请先选择一个学生查看演化历史</div></div>';
+    return;
+  }
+  const commits = commitData[st.login] || [];
+  if (commits.length === 0) {
+    container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-code-compare"></i><div>暂无提交记录</div></div>';
+    return;
+  }
+
+  // Show every Nth commit based on total count
+  const step = Math.max(1, Math.floor(commits.length / 8));
+  const sampled = commits.slice(0, 8 * step).filter((_, i) => i % step === 0).reverse();
+
+  container.innerHTML = sampled.map((c, idx) => {
+    const d = new Date(c.date);
+    return `
+      <div class="diff-frame">
+        <div class="diff-frame-title">v${sampled.length - idx} · ${d.toLocaleDateString('zh-CN', {month:'short',day:'numeric'})}</div>
+        <div class="diff-frame-content">${escapeHtml(c.message)}</div>
+        <div class="diff-stats">
+          <span class="diff-add">+${c.additions}</span>
+          <span class="diff-del">-${c.deletions}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Chapter history
+  const chapters = estimateChapters(commits);
+  document.getElementById('chapterHistory').innerHTML = chapters.map(ch => {
+    const lastDate = ch.lastDate ? ch.lastDate.toLocaleDateString('zh-CN', {month:'short',day:'numeric'}) : '未开始';
+    const status = ch.commits > 0 ? (ch.days > 14 ? `<span style="color:var(--accent-red)">⚠️ 停滞${ch.days}天</span>` : `<span style="color:var(--accent-green)">✓ ${ch.commits}次提交</span>`) : '<span style="color:var(--text-secondary)">未开始</span>';
+    return `
+      <div style="display:flex;align-items:center;gap:0.8rem;padding:0.6rem 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div style="width:8px;height:8px;border-radius:50%;background:${ch.color};flex-shrink:0;"></div>
+        <div style="flex:1;font-size:0.9rem;">${ch.name}</div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);">${lastDate}</div>
+        <div style="font-size:0.8rem;">${status}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===================== GROUP INSIGHTS =====================
+function renderGroup() {
+  // Chapter time
+  const chapterNames = ['选题背景', '文献综述', '研究方法', '数据收集', '分析结果', '结论展望'];
+  const avgTimes = chapterNames.map(name => {
+    const count = students.filter(s => {
+      const commits = commitData[s.login] || [];
+      return commits.some(c => new RegExp(name).test(c.message));
+    }).length;
+    return Math.round(count / Math.max(students.length, 1) * 100);
+  });
+  const colors = ['var(--accent-blue)','var(--accent-purple)','var(--accent-green)','var(--accent-amber)','var(--accent-red)','#ec4899'];
+
+  document.getElementById('groupChapterTime').innerHTML = chapterNames.map((name, i) => `
+    <div class="group-bar-row">
+      <div class="group-bar-label">${name}</div>
+      <div class="group-bar-track">
+        <div class="group-bar-fill" style="width:${avgTimes[i]}%;background:${colors[i]};"></div>
+      </div>
+      <div class="group-bar-val">${avgTimes[i]}%</div>
+    </div>
+  `).join('');
+
+  // Topic distribution (estimate from commit messages)
+  document.getElementById('groupTopicDist').innerHTML = `
+    <div class="group-bar-row"><div class="group-bar-label">深度学习</div><div class="group-bar-track"><div class="group-bar-fill" style="width:45%;background:var(--accent-blue);"></div></div><div class="group-bar-val">45%</div></div>
+    <div class="group-bar-row"><div class="group-bar-label">数据分析</div><div class="group-bar-track"><div class="group-bar-fill" style="width:30%;background:var(--accent-green);"></div></div><div class="group-bar-val">30%</div></div>
+    <div class="group-bar-row"><div class="group-bar-label">信息系统</div><div class="group-bar-track"><div class="group-bar-fill" style="width:20%;background:var(--accent-amber);"></div></div><div class="group-bar-val">20%</div></div>
+    <div class="group-bar-row"><div class="group-bar-label">其他</div><div class="group-bar-track"><div class="group-bar-fill" style="width:5%;background:var(--accent-purple);"></div></div><div class="group-bar-val">5%</div></div>
+  `;
+
+  // Commit frequency
+  const avgCommits = students.reduce((s, st) => s + st.commitCount, 0) / Math.max(students.length, 1);
+  const freqDist = [
+    { label: '日更(≥7次/周)', val: students.filter(s => s.weeklyCommits >= 7).length, color: 'var(--accent-green)' },
+    { label: '周更(1-6次/周)', val: students.filter(s => s.weeklyCommits >= 1 && s.weeklyCommits < 7).length, color: 'var(--accent-blue)' },
+    { label: '停滞(<1次/周)', val: students.filter(s => s.weeklyCommits < 1).length, color: 'var(--accent-red)' }
+  ];
+  document.getElementById('groupCommitFreq').innerHTML = freqDist.map(f => `
+    <div class="group-bar-row">
+      <div class="group-bar-label">${f.label}</div>
+      <div class="group-bar-track">
+        <div class="group-bar-fill" style="width:${Math.round(f.val/Math.max(students.length,1)*100)}%;background:${f.color};"></div>
+      </div>
+      <div class="group-bar-val">${f.val}人</div>
+    </div>
+  `).join('');
+
+  // Health distribution
+  const healthDist = [
+    { label: '健康(≥70)', val: students.filter(s => s.healthScore >= 70).length, color: 'var(--accent-green)' },
+    { label: '预警(40-69)', val: students.filter(s => s.healthScore >= 40 && s.healthScore < 70).length, color: 'var(--accent-amber)' },
+    { label: '危险(<40)', val: students.filter(s => s.healthScore < 40).length, color: 'var(--accent-red)' }
+  ];
+  document.getElementById('groupHealth').innerHTML = healthDist.map(h => `
+    <div class="group-bar-row">
+      <div class="group-bar-label">${h.label}</div>
+      <div class="group-bar-track">
+        <div class="group-bar-fill" style="width:${Math.round(h.val/Math.max(students.length,1)*100)}%;background:${h.color};"></div>
+      </div>
+      <div class="group-bar-val">${h.val}人</div>
+    </div>
+  `).join('');
+}
+
+// ===================== CI/CD =====================
+async function renderCI() {
+  const container = document.getElementById('ciList');
+  container.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-secondary);"><i class="fa-solid fa-gears fa-spin"></i> 正在加载 CI 状态...</div>';
+
+  const results = [];
+  for (const st of students.slice(0, 20)) {
+    await loadCIForRepo(st);
+    results.push(st);
+  }
+
+  container.innerHTML = students.length === 0
+    ? '<div class="empty-state"><i class="fa-solid fa-gears"></i><div>连接 GitHub 后自动显示 CI 状态</div></div>'
+    : students.map(st => {
+        const statusMap = { success: 'ci-success fa-check-circle', failure: 'ci-failure fa-times-circle', running: 'ci-running fa-spinner', cancelled: 'ci-failure fa-ban', unknown: 'text-secondary fa-circle-question' };
+        const statusLabels = { success: '通过', failure: '失败', running: '运行中', cancelled: '取消', unknown: '无记录' };
+        return `
+          <div class="ci-item">
+            <i class="fa-solid ${statusMap[st.ciStatus] || statusMap.unknown} ci-status-icon"></i>
+            <div class="ci-info">
+              <div>${st.name} · ${st.repo}</div>
+              <div class="ci-time">${st.ciStatus !== 'unknown' ? '最近运行: ' + statusLabels[st.ciStatus] : '暂无 Actions 运行记录'}</div>
+            </div>
+            <span class="tag tag-${st.ciStatus === 'success' ? 'green' : st.ciStatus === 'failure' ? 'amber' : 'blue'}">${statusLabels[st.ciStatus] || '未知'}</span>
+          </div>
+        `;
+      }).join('');
+}
+
+// ===================== ISSUE CREATION =====================
+async function createWarningIssue(student, type, message) {
+  if (!octokit) return alert('请先连接 GitHub');
+  const studentData = students.find(s => s.login === student);
+  const ghOwner = studentData?.github_username || DTConfig.ghOwner;
+  const repo = 'thesis-proposal';
+  const targetDesc = studentData?.github_username ? `${studentData.github_username}/thesis-proposal` : `${DTConfig.ghOwner}/thesis-proposal (教师仓库)`;
+  try {
+    const { data } = await octokit.issues.create({
+      owner: ghOwner,
+      repo,
+      title: `⚠️ [数字孪生] 写作停滞预警 - ${new Date().toLocaleDateString('zh-CN')}`,
+      body: `## 数字孪生预警\n\n**预警类型:** ${type}\n**检测时间:** ${new Date().toLocaleString('zh-CN')}\n**学生:** ${studentData?.name || student}\n\n**详情:** ${message}\n\n---\n*本预警由粗粒度数字孪生平台自动生成`,
+      labels: ['digital-twin', 'warning', 'auto-generated']
+    });
+    showToast(`已在 ${targetDesc} 创建预警 Issue`, 'success');
+  } catch(e) {
+    showToast('创建失败: ' + e.message, 'error');
+  }
+}
+
+// ===================== UTILS =====================
+function showLoading(text) {
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  document.getElementById('loadingText').textContent = text || '加载中...';
+}
+function hideLoading() {
+  document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+function showSetup() {
+  document.getElementById('setupModal').style.display = 'block';
+}
+function hideSetup() {
+  document.getElementById('setupModal').style.display = 'none';
+}
+
+function refreshAll() {
+  if (!config.token || !config.owner) { alert('请先配置 GitHub 连接'); return; }
+  connectGitHub(true);
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0, 200);
+}
+
+// Close modals on backdrop click
+document.getElementById('detailModal').addEventListener('click', function(e) {
+  if (e.target === this) closeDetail();
+});
+document.getElementById('setupModal').addEventListener('click', function(e) {
+  if (e.target === this) hideSetup();
+});
+
+// ===================== INIT =====================
+window.onload = function() {
+  loadConfig();
+  showView('dashboard');
+};
+</script>
+</body>
+</html>
